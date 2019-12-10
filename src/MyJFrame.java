@@ -6,11 +6,10 @@ import java.awt.event.ComponentEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
-import java.util.List;
 
 public class MyJFrame extends JFrame {
 
-    private List<Product> productList = new ArrayList<>();
+    private TreeSet<Product> productSet;
     private DefaultListModel listModel;
     private JList list;
     private JFileChooser fileChooser;
@@ -39,6 +38,7 @@ public class MyJFrame extends JFrame {
         listModel = new DefaultListModel();
         list = new JList(listModel);
         JPanel buttonPanel = new JPanel();
+        productSet = new TreeSet<>(new MyComparator());
         fileChooser = new JFileChooser("C:\\Users\\Dell\\IdeaProjects\\Lab13\\src");
         JButton open = createOpenButton();
         buttonPanel.add(open);
@@ -59,18 +59,23 @@ public class MyJFrame extends JFrame {
         add.addActionListener(e -> {
             Product pr = new Product();
             new EditJDialog(this, "Add", pr);
-            productList.add(pr);
-            productList.sort(new MyComparator());
-            show(productList);
+            productSet.add(pr);
+            show(productSet);
         });
         return add;
     }
 
     private JButton createEditButton() {
         JButton edit = new JButton("Edit");
+
+
         edit.addActionListener(e -> {
-                    new EditJDialog(this, "edit", productList.get(list.getSelectedIndex()));
-                    show(productList);
+            Iterator<Product> iter= productSet.iterator();
+            for (int i = 0; i < list.getSelectedIndex() ; i++) {
+                iter.next();
+            }
+                    new EditJDialog(this, "edit", iter.next());
+                    show(productSet);
                 }
         );
         return edit;
@@ -86,7 +91,7 @@ public class MyJFrame extends JFrame {
             int result = fileChooser.showOpenDialog(this);
             if (result == JFileChooser.APPROVE_OPTION)
                 read(fileChooser.getSelectedFile());
-            show(productList);
+            show(productSet);
 
         });
         return open;
@@ -95,7 +100,7 @@ public class MyJFrame extends JFrame {
     private void show(Collection<Product> a) {
         if (a != null) {
             listModel.clear();
-            Iterator<Product> iter = productList.iterator();
+            Iterator<Product> iter = productSet.iterator();
             while (iter.hasNext())
                 listModel.addElement(iter.next().toString());
             list.setSelectedIndex(0);
@@ -108,10 +113,9 @@ public class MyJFrame extends JFrame {
         Scanner sc = null;
         try {
             sc = new Scanner(file);
-            productList = new ArrayList<>();
+            productSet = new TreeSet<>(new MyComparator());
             while (sc.hasNext())
-                productList.add(new Product(sc.next(), sc.next(), sc.nextInt()));
-            productList.sort(new MyComparator());
+                productSet.add(new Product(sc.next(), sc.next(), sc.nextInt()));
         } catch (FileNotFoundException err) {
             JOptionPane.showMessageDialog(this, err, "Error!", JOptionPane.PLAIN_MESSAGE);
         } finally {
