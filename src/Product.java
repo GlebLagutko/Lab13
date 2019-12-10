@@ -1,3 +1,4 @@
+import java.util.List;
 import java.util.Objects;
 
 public class Product {
@@ -55,8 +56,14 @@ public class Product {
 
     @Override
     public String toString() {
-        return  "country='" + country + '\'' +
-                ", name='" + name + '\'' +
-                ", count=" + count ;
+        return "name='" + name + '\'' +
+                ",country='" + country + '\'' +
+                ", count=" + count;
     }
+
+    public String toXML() {
+        return String.format("<product name='%s' country='%s' count='%s'/>", name, country, count);
+    }
+
+
 }

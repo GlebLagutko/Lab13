@@ -1,11 +1,23 @@
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.*;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.Scanner;
+import java.util.TreeSet;
 
 public class MyJFrame extends JFrame {
 
@@ -39,19 +51,61 @@ public class MyJFrame extends JFrame {
         list = new JList(listModel);
         JPanel buttonPanel = new JPanel();
         productSet = new TreeSet<>(new MyComparator());
-        fileChooser = new JFileChooser("C:\\Users\\Dell\\IdeaProjects\\Lab13\\src");
+        fileChooser = new JFileChooser("C:\\Users\\Dell\\IdeaProjects\\Lab13");
         JButton open = createOpenButton();
         buttonPanel.add(open);
         JButton edit = createEditButton();
         buttonPanel.add(edit);
         JButton add = createAddButton();
         buttonPanel.add(add);
+        JButton save = createSaveToXmlButton();
+        buttonPanel.add(save);
+        JButton openXML = createOpenXMLButton();
+        buttonPanel.add(openXML);
         panel.add(buttonPanel, new
                 GridBagConstraints(0, 1, 1, 1, 0, 0, GridBagConstraints.SOUTH,
                 0, new Insets(0, 0, 0, 0), 0, 0));
         panel.add(list, new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.NORTH,
                 1, new Insets(0, 0, 0, 0), 0, 0));
         return pane;
+    }
+
+    private JButton createOpenXMLButton() {
+        JButton readXML = new JButton("OpenXML");
+        readXML.addActionListener(e -> {
+            try {
+                fileChooser.setDialogTitle("Октрытие файла");
+                fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                FileNameExtensionFilter filter = new FileNameExtensionFilter("Text files", "xml");
+                fileChooser.setFileFilter(filter);
+                int result = fileChooser.showOpenDialog(this);
+                if (result == JFileChooser.APPROVE_OPTION) {
+                    DocumentBuilderFactory products = DocumentBuilderFactory.newInstance();
+                    DocumentBuilder builder = products.newDocumentBuilder();
+                    Document document = builder.parse(fileChooser.getSelectedFile());
+                    NodeList productElements = document.getDocumentElement().getElementsByTagName("product");
+                    productSet = new TreeSet<>(new MyComparator());
+                    for (int i = 0; i < productElements.getLength(); i++) {
+                        Node product = productElements.item(i);
+                        NamedNodeMap attributes = product.getAttributes();
+                        productSet.add(new Product(attributes.getNamedItem("name").getNodeValue(), attributes.getNamedItem("country").getNodeValue(),
+                                Integer.parseInt(attributes.getNamedItem("count").getNodeValue())));
+                    }
+                    show(productSet);
+                }
+            } catch (Exception ex) {
+            }
+        });
+        return readXML;
+    }
+
+    private JButton createSaveToXmlButton() {
+        JButton save = new JButton("Save");
+        save.addActionListener(e -> {
+            saveToXml();
+            JOptionPane.showMessageDialog(this, "Done", "", JOptionPane.PLAIN_MESSAGE);
+        });
+        return save;
     }
 
     private JButton createAddButton() {
@@ -67,15 +121,15 @@ public class MyJFrame extends JFrame {
 
     private JButton createEditButton() {
         JButton edit = new JButton("Edit");
-
-
         edit.addActionListener(e -> {
-            Iterator<Product> iter= productSet.iterator();
-            for (int i = 0; i < list.getSelectedIndex() ; i++) {
-                iter.next();
-            }
-                    new EditJDialog(this, "edit", iter.next());
-                    show(productSet);
+                    if (list.getSelectedIndex() >= 0) {
+                        Iterator<Product> iter = productSet.iterator();
+                        for (int i = 0; i < list.getSelectedIndex(); i++) {
+                            iter.next();
+                        }
+                        new EditJDialog(this, "edit", iter.next());
+                        show(productSet);
+                    }
                 }
         );
         return edit;
@@ -121,6 +175,19 @@ public class MyJFrame extends JFrame {
         } finally {
             if (sc != null)
                 sc.close();
+        }
+    }
+
+    private void saveToXml() {
+        try (FileWriter wr = new FileWriter("xmlFileName.xml")) {
+            wr.write("<?xml version=\"1.0\"?>" + "\n");
+            wr.write("<products>" + "\n");
+            Iterator<Product> iter = productSet.iterator();
+            while (iter.hasNext())
+                wr.write(iter.next().toXML() + "\n");
+            wr.write("</products>");
+        } catch (IOException ex) {
+
         }
     }
 }
