@@ -2,11 +2,13 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -22,10 +24,9 @@ import java.util.TreeSet;
 public class MyJFrame extends JFrame {
 
     private TreeSet<Product> productSet;
-    private DefaultListModel listModel;
-    private JList list;
+    private DefaultListModel<String> listModel;
+    private JList<String> list;
     private JFileChooser fileChooser;
-
 
     public MyJFrame() {
         SwingUtilities.invokeLater(() -> {
@@ -47,8 +48,8 @@ public class MyJFrame extends JFrame {
         JPanel panel = new JPanel();
         pane.setContentPane(panel);
         panel.setLayout(new GridBagLayout());
-        listModel = new DefaultListModel();
-        list = new JList(listModel);
+        listModel = new DefaultListModel<>();
+        list = new JList<>(listModel);
         JPanel buttonPanel = new JPanel();
         productSet = new TreeSet<>(new MyComparator());
         fileChooser = new JFileChooser("C:\\Users\\Dell\\IdeaProjects\\Lab13");
@@ -62,6 +63,8 @@ public class MyJFrame extends JFrame {
         buttonPanel.add(save);
         JButton openXML = createOpenXMLButton();
         buttonPanel.add(openXML);
+        JButton delete = createDeleteButton();
+        buttonPanel.add(delete);
         panel.add(buttonPanel, new
                 GridBagConstraints(0, 1, 1, 1, 0, 0, GridBagConstraints.SOUTH,
                 0, new Insets(0, 0, 0, 0), 0, 0));
@@ -70,13 +73,29 @@ public class MyJFrame extends JFrame {
         return pane;
     }
 
+    private JButton createDeleteButton() {
+        JButton delete = new JButton("Delete");
+        delete.addActionListener(e -> {
+                    if (list.getSelectedIndex() >= 0) {
+                        Iterator<Product> iter = productSet.iterator();
+                        for (int i = 0; i < list.getSelectedIndex(); i++) {
+                            iter.next();
+                        }
+                        productSet.remove(iter.next());
+                        show(productSet);
+                    }
+                }
+        );
+        return delete;
+    }
+
     private JButton createOpenXMLButton() {
         JButton readXML = new JButton("OpenXML");
         readXML.addActionListener(e -> {
             try {
                 fileChooser.setDialogTitle("Октрытие файла");
                 fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                FileNameExtensionFilter filter = new FileNameExtensionFilter("Text files", "xml");
+                FileNameExtensionFilter filter = new FileNameExtensionFilter("XML files", "xml");
                 fileChooser.setFileFilter(filter);
                 int result = fileChooser.showOpenDialog(this);
                 if (result == JFileChooser.APPROVE_OPTION) {
@@ -93,7 +112,8 @@ public class MyJFrame extends JFrame {
                     }
                     show(productSet);
                 }
-            } catch (Exception ex) {
+            } catch (SAXException | ParserConfigurationException | IOException ex) {
+                JOptionPane.showMessageDialog(this, "Problems with file", "Error!", JOptionPane.PLAIN_MESSAGE);
             }
         });
         return readXML;
@@ -128,6 +148,9 @@ public class MyJFrame extends JFrame {
                             iter.next();
                         }
                         new EditJDialog(this, "edit", iter.next());
+                        TreeSet<Product> temp = new TreeSet<>(new MyComparator());
+                        temp.addAll(productSet);
+                        productSet = new TreeSet<>(temp);
                         show(productSet);
                     }
                 }
@@ -146,7 +169,6 @@ public class MyJFrame extends JFrame {
             if (result == JFileChooser.APPROVE_OPTION)
                 read(fileChooser.getSelectedFile());
             show(productSet);
-
         });
         return open;
     }
@@ -164,17 +186,12 @@ public class MyJFrame extends JFrame {
 
 
     private void read(File file) {
-        Scanner sc = null;
-        try {
-            sc = new Scanner(file);
+        try (Scanner sc = new Scanner(file)) {
             productSet = new TreeSet<>(new MyComparator());
             while (sc.hasNext())
                 productSet.add(new Product(sc.next(), sc.next(), sc.nextInt()));
         } catch (FileNotFoundException err) {
             JOptionPane.showMessageDialog(this, err, "Error!", JOptionPane.PLAIN_MESSAGE);
-        } finally {
-            if (sc != null)
-                sc.close();
         }
     }
 
@@ -186,8 +203,8 @@ public class MyJFrame extends JFrame {
             while (iter.hasNext())
                 wr.write(iter.next().toXML() + "\n");
             wr.write("</products>");
-        } catch (IOException ex) {
-
+        } catch (IOException ignored) {
+            JOptionPane.showMessageDialog(this, "Problems with file", "Error!", JOptionPane.PLAIN_MESSAGE);
         }
     }
 }

@@ -16,7 +16,6 @@ public class EditJDialog extends  JDialog{
     public EditJDialog(JFrame parent, String title, Product o) {
         super(parent, title, true);
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        //setResizable(false);
         this.product = o;
 
         Container container = this.getContentPane();

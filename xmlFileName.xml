@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <products>
-<product name='Apple' country='Poland' count='23'/>
-<product name='Vodka' country='Finland' count='34'/>
-<product name='Cheese' country='France' count='45'/>
+    <product name='Potato' country='Belarus' count='59'/>
+    <product name='Apple' country='Poland' count='23'/>
+    <product name='Vodka' country='Finland' count='34'/>
+    <product name='Cheese' country='France' count='45'/>
 </products>
