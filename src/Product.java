@@ -1,7 +1,7 @@
 import java.util.List;
 import java.util.Objects;
 
-public class Product {
+public class Product implements Comparable<Product> {
     private String name;
     private String country;
     private int count;
@@ -65,5 +65,9 @@ public class Product {
         return String.format("<product name='%s' country='%s' count='%s'/>", name, country, count);
     }
 
-
+    @Override
+    public int compareTo(Product o) {
+        return this.getCount() - o.getCount() == 0 ? this.getName().compareTo(o.getName()) :
+                this.getCount() - o.getCount();
+    }
 }

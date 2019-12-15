@@ -12,21 +12,18 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Scanner;
-import java.util.TreeSet;
+import java.util.List;
 
 public class MyJFrame extends JFrame {
 
-    private TreeSet<Product> productSet;
-    private DefaultListModel<String> listModel;
-    private JList<String> list;
-    private JFileChooser fileChooser;
+    private List<Product> myList;
+    private JFileChooser fileChooser = new JFileChooser("C:/Users/Dell/IdeaProjects/Lab13");
+    private FirstPanel firstPanel;
+    private SecondPanel secondPanel;
 
     public MyJFrame() {
         SwingUtilities.invokeLater(() -> {
@@ -47,51 +44,50 @@ public class MyJFrame extends JFrame {
         JRootPane pane = new JRootPane();
         JPanel panel = new JPanel();
         pane.setContentPane(panel);
-        panel.setLayout(new GridBagLayout());
-        listModel = new DefaultListModel<>();
-        list = new JList<>(listModel);
-        JPanel buttonPanel = new JPanel();
-        productSet = new TreeSet<>(new MyComparator());
-        fileChooser = new JFileChooser("C:\\Users\\Dell\\IdeaProjects\\Lab13");
-        JButton open = createOpenButton();
-        buttonPanel.add(open);
-        JButton edit = createEditButton();
-        buttonPanel.add(edit);
-        JButton add = createAddButton();
-        buttonPanel.add(add);
-        JButton save = createSaveToXmlButton();
-        buttonPanel.add(save);
-        JButton openXML = createOpenXMLButton();
-        buttonPanel.add(openXML);
-        JButton delete = createDeleteButton();
-        buttonPanel.add(delete);
-        panel.add(buttonPanel, new
-                GridBagConstraints(0, 1, 1, 1, 0, 0, GridBagConstraints.SOUTH,
-                0, new Insets(0, 0, 0, 0), 0, 0));
-        panel.add(list, new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.NORTH,
-                1, new Insets(0, 0, 0, 0), 0, 0));
+        panel.setLayout(new BorderLayout());
+        myList = new ArrayList<>();
+        JMenuBar menuBar = new JMenuBar();
+        JMenu submenu = new JMenu("Menu");
+        menuBar.add(submenu);
+        JMenuItem open = getOpenButton();
+        submenu.add(open);
+        JMenuItem add = getAddButton();
+        submenu.add(add);
+        JMenuItem save = getSaveButton();
+        submenu.add(save);
+        JTabbedPane tabbedPane = new JTabbedPane();
+        firstPanel = new FirstPanel(myList);
+        secondPanel = new SecondPanel(myList);
+        tabbedPane.add("tab1", firstPanel);
+        tabbedPane.add("tab2", secondPanel);
+        panel.add(tabbedPane, BorderLayout.CENTER);
+        panel.add(menuBar, BorderLayout.NORTH);
         return pane;
     }
 
-    private JButton createDeleteButton() {
-        JButton delete = new JButton("Delete");
-        delete.addActionListener(e -> {
-                    if (list.getSelectedIndex() >= 0) {
-                        Iterator<Product> iter = productSet.iterator();
-                        for (int i = 0; i < list.getSelectedIndex(); i++) {
-                            iter.next();
-                        }
-                        productSet.remove(iter.next());
-                        show(productSet);
-                    }
-                }
-        );
-        return delete;
+    private JMenuItem getSaveButton() {
+        JMenuItem save = new JMenuItem("Save");
+        save.addActionListener(e -> {
+            saveToXml();
+            JOptionPane.showMessageDialog(this, "Done", "", JOptionPane.PLAIN_MESSAGE);
+        });
+        return save;
     }
 
-    private JButton createOpenXMLButton() {
-        JButton readXML = new JButton("OpenXML");
-        readXML.addActionListener(e -> {
+    private JMenuItem getAddButton() {
+        JMenuItem menuItem2 = new JMenuItem("Add");
+        menuItem2.addActionListener(e -> {
+            Product pr = new Product();
+            new EditJDialog(this, "Add", pr);
+            myList.add(pr);
+            updateAll();
+        });
+        return menuItem2;
+    }
+
+    private JMenuItem getOpenButton() {
+        JMenuItem menuItem1 = new JMenuItem("Open");
+        menuItem1.addActionListener(e -> {
             try {
                 fileChooser.setDialogTitle("Октрытие файла");
                 fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -103,108 +99,46 @@ public class MyJFrame extends JFrame {
                     DocumentBuilder builder = products.newDocumentBuilder();
                     Document document = builder.parse(fileChooser.getSelectedFile());
                     NodeList productElements = document.getDocumentElement().getElementsByTagName("product");
-                    productSet = new TreeSet<>(new MyComparator());
+                    myList.clear();
                     for (int i = 0; i < productElements.getLength(); i++) {
                         Node product = productElements.item(i);
                         NamedNodeMap attributes = product.getAttributes();
-                        productSet.add(new Product(attributes.getNamedItem("name").getNodeValue(), attributes.getNamedItem("country").getNodeValue(),
+                        myList.add(new Product(attributes.getNamedItem("name").getNodeValue(), attributes.getNamedItem("country").getNodeValue(),
                                 Integer.parseInt(attributes.getNamedItem("count").getNodeValue())));
                     }
-                    show(productSet);
+                    updateAll();
                 }
             } catch (SAXException | ParserConfigurationException | IOException ex) {
                 JOptionPane.showMessageDialog(this, "Problems with file", "Error!", JOptionPane.PLAIN_MESSAGE);
             }
         });
-        return readXML;
+        return menuItem1;
     }
 
-    private JButton createSaveToXmlButton() {
-        JButton save = new JButton("Save");
-        save.addActionListener(e -> {
-            saveToXml();
-            JOptionPane.showMessageDialog(this, "Done", "", JOptionPane.PLAIN_MESSAGE);
-        });
-        return save;
-    }
-
-    private JButton createAddButton() {
-        JButton add = new JButton("Add");
-        add.addActionListener(e -> {
-            Product pr = new Product();
-            new EditJDialog(this, "Add", pr);
-            productSet.add(pr);
-            show(productSet);
-        });
-        return add;
-    }
-
-    private JButton createEditButton() {
-        JButton edit = new JButton("Edit");
-        edit.addActionListener(e -> {
-                    if (list.getSelectedIndex() >= 0) {
-                        Iterator<Product> iter = productSet.iterator();
-                        for (int i = 0; i < list.getSelectedIndex(); i++) {
-                            iter.next();
-                        }
-                        new EditJDialog(this, "edit", iter.next());
-                        TreeSet<Product> temp = new TreeSet<>(new MyComparator());
-                        temp.addAll(productSet);
-                        productSet = new TreeSet<>(temp);
-                        show(productSet);
-                    }
-                }
-        );
-        return edit;
-    }
-
-    private JButton createOpenButton() {
-        JButton open = new JButton("Open");
-        open.addActionListener(e -> {
-            fileChooser.setDialogTitle("Октрытие файла");
-            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            FileNameExtensionFilter filter = new FileNameExtensionFilter("Text files", "txt");
-            fileChooser.setFileFilter(filter);
-            int result = fileChooser.showOpenDialog(this);
-            if (result == JFileChooser.APPROVE_OPTION)
-                read(fileChooser.getSelectedFile());
-            show(productSet);
-        });
-        return open;
-    }
-
-    private void show(Collection<Product> a) {
-        if (a != null) {
-            listModel.clear();
-            Iterator<Product> iter = productSet.iterator();
-            while (iter.hasNext())
-                listModel.addElement(iter.next().toString());
-            list.setSelectedIndex(0);
-        } else
-            JOptionPane.showMessageDialog(this, "There are no elements!", "Error!", JOptionPane.PLAIN_MESSAGE);
-    }
-
-
-    private void read(File file) {
-        try (Scanner sc = new Scanner(file)) {
-            productSet = new TreeSet<>(new MyComparator());
-            while (sc.hasNext())
-                productSet.add(new Product(sc.next(), sc.next(), sc.nextInt()));
-        } catch (FileNotFoundException err) {
-            JOptionPane.showMessageDialog(this, err, "Error!", JOptionPane.PLAIN_MESSAGE);
-        }
+    private void updateAll() {
+        firstPanel.update();
+        secondPanel.update();
     }
 
     private void saveToXml() {
-        try (FileWriter wr = new FileWriter("xmlFileName.xml")) {
-            wr.write("<?xml version=\"1.0\"?>" + "\n");
-            wr.write("<products>" + "\n");
-            Iterator<Product> iter = productSet.iterator();
-            while (iter.hasNext())
-                wr.write(iter.next().toXML() + "\n");
-            wr.write("</products>");
-        } catch (IOException ignored) {
-            JOptionPane.showMessageDialog(this, "Problems with file", "Error!", JOptionPane.PLAIN_MESSAGE);
+        try {
+            fileChooser.setDialogTitle("Сохранение файла");
+            fileChooser.setFileSelectionMode(JFileChooser.OPEN_DIALOG);
+            int result = fileChooser.showSaveDialog(this);
+            if (result == JFileChooser.APPROVE_OPTION)
+                try (FileWriter wr = new FileWriter(fileChooser.getSelectedFile())) {
+                    wr.write("<?xml version=\"1.0\"?>" + "\n");
+                    wr.write("<products>" + "\n");
+                    Iterator<Product> iter = myList.iterator();
+                    while (iter.hasNext())
+                        wr.write(iter.next().toXML() + "\n");
+                    wr.write("</products>");
+                } catch (IOException ignored) {
+                    JOptionPane.showMessageDialog(this, "Problems with file", "Error!", JOptionPane.PLAIN_MESSAGE);
+                }
+        } catch (Exception ignored) {
+
         }
+
     }
 }
