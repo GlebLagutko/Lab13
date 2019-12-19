@@ -62,8 +62,13 @@ public class Product implements Comparable<Product> {
     }
 
     public String toXML() {
-        return String.format("<product name='%s' country='%s' count='%s'/>", name, country, count);
+        String format = String.format("<product name = '%s' >"  + "\n" +
+                        "<country>" + "%s" + "</country>" + "\n" + "<count>" + "%s" + "</count>" + "\n" + "</product>"
+                , name, country, count);
+        System.out.println(format);
+        return format;
     }
+
 
     @Override
     public int compareTo(Product o) {
